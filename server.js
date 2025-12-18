@@ -1,30 +1,27 @@
 // server.js
 const express = require('express');
 const mongoose = require('mongoose');
-const Task = require('./models/Task');
 const Ajv = require('ajv');
-const taskSchema = require('./schemas/taskSchema.json');
 const addFormats = require('ajv-formats');
+const Task = require('./models/Task');
+const taskSchema = require('./schemas/taskSchema.json');
+
 const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
 const validate = ajv.compile(taskSchema);
 
 // --- 1. EXPRESS & DB SETUP ---
 const app = express();
+// Use the PORT variable provided by Render, or default to 3000
 const PORT = process.env.PORT || 3000;
+// Render requires binding to this specific host
+const HOST = '0.0.0.0'; 
 
 // Middleware
 app.use(express.json());
 
-// MongoDB Connection (Crucial for Render Deployment)
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/midterm_api'; // <<< USE YOUR ATLAS URI HERE LOCALLY
-
-mongoose.connect(MONGO_URI)
-    .then(() => console.log('MongoDB connected successfully'))
-    .catch(err => {
-        console.error('MongoDB connection error:', err);
-        process.exit(1);
-    });
+// MongoDB Connection URI (Render uses process.env.MONGO_URI)
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/midterm_api'; 
 
 // --- 2. VALIDATION MIDDLEWARE ---
 const validateSchema = (req, res, next) => {
@@ -40,7 +37,7 @@ const validateSchema = (req, res, next) => {
 
 // --- 3. API ROUTES (CRUD) ---
 
-// GET: Retrieve all resources (Required)
+// All routes now use the correct path: /api/tasks
 app.get('/api/tasks', async (req, res) => {
     try {
         const tasks = await Task.find();
@@ -50,18 +47,16 @@ app.get('/api/tasks', async (req, res) => {
     }
 });
 
-// POST: Create a new resource (Required)
 app.post('/api/tasks', validateSchema, async (req, res) => {
     try {
         const newTask = new Task(req.body);
         await newTask.save();
-        res.status(201).json(newTask); // 201 Created Status
+        res.status(201).json(newTask);
     } catch (error) {
         res.status(400).json({ message: 'Error creating task', error: error.message });
     }
 });
 
-// PUT/PATCH: Update an existing resource (Required)
 app.patch('/api/tasks/:id', validateSchema, async (req, res) => {
     try {
         const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
@@ -74,14 +69,13 @@ app.patch('/api/tasks/:id', validateSchema, async (req, res) => {
     }
 });
 
-// DELETE: Remove a resource (Required)
 app.delete('/api/tasks/:id', async (req, res) => {
     try {
         const deletedTask = await Task.findByIdAndDelete(req.params.id);
         if (!deletedTask) {
             return res.status(404).json({ message: 'Task not found' });
         }
-        res.status(204).send(); // 204 No Content Status
+        res.status(204).send();
     } catch (error) {
         res.status(500).json({ message: 'Error deleting task', error: error.message });
     }
@@ -89,6 +83,13 @@ app.delete('/api/tasks/:id', async (req, res) => {
 
 
 // --- 4. START SERVER ---
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+mongoose.connect(MONGO_URI)
+    .then(() => {
+        app.listen(PORT, HOST, () => { // <--- THE FINAL FIX IS HERE!
+            console.log(`Server is running on host ${HOST} and port ${PORT}`);
+        });
+    })
+    .catch(err => {
+        console.error('Database connection error:', err);
+        process.exit(1);
+    });
