@@ -4,8 +4,9 @@ const mongoose = require('mongoose');
 const Task = require('./models/Task');
 const Ajv = require('ajv');
 const taskSchema = require('./schemas/taskSchema.json');
-
+const addFormats = require('ajv-formats');
 const ajv = new Ajv({ allErrors: true });
+addFormats(ajv);
 const validate = ajv.compile(taskSchema);
 
 // --- 1. EXPRESS & DB SETUP ---
