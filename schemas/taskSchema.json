@@ -1,0 +1,23 @@
+{
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 3
+      },
+      "description": {
+        "type": "string",
+        "minLength": 10
+      },
+      "dueDate": {
+        "type": "string",
+        "format": "date"
+      },
+      "status": {
+        "type": "string",
+        "enum": ["Pending", "Completed", "In Progress"]
+      }
+    },
+    "required": ["title", "description"],
+    "additionalProperties": false
+  }
