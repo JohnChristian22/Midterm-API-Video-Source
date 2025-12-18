@@ -85,7 +85,8 @@ app.delete('/api/tasks/:id', async (req, res) => {
 // --- 4. START SERVER ---
 mongoose.connect(MONGO_URI)
     .then(() => {
-        app.listen(PORT, HOST, () => { // <--- THE FINAL FIX IS HERE!
+        // This connects the server to the host 0.0.0.0, which Render requires.
+        app.listen(PORT, HOST, () => { 
             console.log(`Server is running on host ${HOST} and port ${PORT}`);
         });
     })
