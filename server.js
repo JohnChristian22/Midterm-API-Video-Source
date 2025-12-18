@@ -12,9 +12,10 @@ const validate = ajv.compile(taskSchema);
 
 // --- 1. EXPRESS & DB SETUP ---
 const app = express();
+
 // Use the PORT variable provided by Render, or default to 3000
 const PORT = process.env.PORT || 3000;
-// Render requires binding to this specific host
+// RENDER FIX: Must bind to 0.0.0.0 for external access on the cloud
 const HOST = '0.0.0.0'; 
 
 // Middleware
@@ -37,7 +38,7 @@ const validateSchema = (req, res, next) => {
 
 // --- 3. API ROUTES (CRUD) ---
 
-// All routes now use the correct path: /api/tasks
+// All routes must use the correct prefix: /api
 app.get('/api/tasks', async (req, res) => {
     try {
         const tasks = await Task.find();
@@ -59,6 +60,7 @@ app.post('/api/tasks', validateSchema, async (req, res) => {
 
 app.patch('/api/tasks/:id', validateSchema, async (req, res) => {
     try {
+        // Mongoose option { new: true } returns the updated document
         const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
         if (!updatedTask) {
             return res.status(404).json({ message: 'Task not found' });
@@ -75,6 +77,7 @@ app.delete('/api/tasks/:id', async (req, res) => {
         if (!deletedTask) {
             return res.status(404).json({ message: 'Task not found' });
         }
+        // 204 means successful deletion with no body content returned
         res.status(204).send();
     } catch (error) {
         res.status(500).json({ message: 'Error deleting task', error: error.message });
@@ -85,7 +88,7 @@ app.delete('/api/tasks/:id', async (req, res) => {
 // --- 4. START SERVER ---
 mongoose.connect(MONGO_URI)
     .then(() => {
-        // This connects the server to the host 0.0.0.0, which Render requires.
+        // THE FINAL FIX: Binding to both PORT and HOST (0.0.0.0)
         app.listen(PORT, HOST, () => { 
             console.log(`Server is running on host ${HOST} and port ${PORT}`);
         });
